@@ -372,7 +372,6 @@ public class HomeActivity extends AppCompatActivity
     }
 
     private void loadAllAvailableDriver() {
-
         // first, we need delete all markers on map
         mMap.clear();
         // then add aour location
