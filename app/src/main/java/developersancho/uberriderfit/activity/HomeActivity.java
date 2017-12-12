@@ -177,7 +177,8 @@ public class HomeActivity extends AppCompatActivity
                     // make raw payload - convert LatLng json
                     String json_lat_lng = new Gson().toJson(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
                     // send it to driver
-                    Notification data = new Notification("SANCHO", json_lat_lng);
+                    String riderToken = FirebaseInstanceId.getInstance().getToken();
+                    Notification data = new Notification(riderToken, json_lat_lng);
                     Sender sender = new Sender(token.getToken(), data);
 
                     mService.sendMessage(sender).enqueue(new Callback<FCMResponse>() {
