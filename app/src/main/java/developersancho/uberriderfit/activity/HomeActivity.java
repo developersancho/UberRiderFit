@@ -43,6 +43,7 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
+import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.firebase.auth.FirebaseAuth;
@@ -87,7 +88,7 @@ public class HomeActivity extends AppCompatActivity
     private static int DISPLACEMENT = 10;
     //DatabaseReference ref;
     //GeoFire geoFire;
-    Marker mUserMarker;
+    Marker mUserMarker, markerDestination;
 
 
     //Bottomsheet
@@ -170,7 +171,7 @@ public class HomeActivity extends AppCompatActivity
                 mMap.clear();
                 // add marker at new location
                 mUserMarker = mMap.addMarker(new MarkerOptions().position(place.getLatLng())
-                        .icon(BitmapDescriptorFactory.defaultMarker())
+                        .icon(BitmapDescriptorFactory.fromResource(R.drawable.marker))
                         .title("Pickup Here Baby"));
 
                 mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(place.getLatLng(), 15.0f));
@@ -188,11 +189,12 @@ public class HomeActivity extends AppCompatActivity
                 mPlaceDestination = place.getAddress().toString();
                 // add new destination marker
                 mMap.addMarker(new MarkerOptions().position(place.getLatLng())
-                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE)));
+                        .icon(BitmapDescriptorFactory.fromResource(R.drawable.destination_marker))
+                        .title("Destination"));
                 mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(place.getLatLng(), 15.0f));
 
                 // show information in bottom
-                BottomSheetRiderFragment mBottomSheet = BottomSheetRiderFragment.newInstance(mPlaceLocation, mPlaceDestination);
+                BottomSheetRiderFragment mBottomSheet = BottomSheetRiderFragment.newInstance(mPlaceLocation, mPlaceDestination, false);
                 mBottomSheet.show(getSupportFragmentManager(), mBottomSheet.getTag());
             }
 
@@ -427,15 +429,6 @@ public class HomeActivity extends AppCompatActivity
             });
 
 
-            // add marker
-            if (mUserMarker != null)
-                mUserMarker.remove();
-            mUserMarker = mMap.addMarker(new MarkerOptions()
-                    //.icon(BitmapDescriptorFactory.fromResource(R.drawable.car))
-                    .position(new LatLng(latitude, longitude))
-                    .title("You"));
-
-            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(latitude, longitude), 15.0f));
             // draw animation rotate marker
             // rotateMarker(mCurrent, -360, mMap);
 
@@ -448,13 +441,14 @@ public class HomeActivity extends AppCompatActivity
     }
 
     private void loadAllAvailableDriver(final LatLng location) {
-        // first, we need delete all markers on map
+        // add marker
         mMap.clear();
-        // then add aour location
-        mMap.addMarker(new MarkerOptions()
+        mUserMarker = mMap.addMarker(new MarkerOptions()
+                .icon(BitmapDescriptorFactory.fromResource(R.drawable.marker))
                 .position(location)
                 .title("You"));
 
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(location, 15.0f));
         //Load all available drivers in distance 3 km
         DatabaseReference driverLocation = FirebaseDatabase.getInstance().getReference(Common.driver_tbl);
         GeoFire gf = new GeoFire(driverLocation);
@@ -598,6 +592,7 @@ public class HomeActivity extends AppCompatActivity
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
+        googleMap.setMapStyle(MapStyleOptions.loadRawResourceStyle(this, R.raw.uber_style_map));
         mMap = googleMap;
         mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
         mMap.setTrafficEnabled(false);
@@ -606,6 +601,25 @@ public class HomeActivity extends AppCompatActivity
         mMap.getUiSettings().setZoomControlsEnabled(true);
         mMap.getUiSettings().setZoomGesturesEnabled(true);
         mMap.setInfoWindowAdapter(new CustomInfoWindow(this));
+
+        mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
+            @Override
+            public void onMapClick(LatLng latLng) {
+                // first, check markerDestination
+                if (markerDestination != null)
+                    markerDestination.remove();
+                markerDestination = mMap.addMarker(new MarkerOptions().icon(BitmapDescriptorFactory.fromResource(R.drawable.destination_marker))
+                        .position(latLng).title("Destination"));
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15.0f));
+
+                // show information in bottom
+                BottomSheetRiderFragment mBottomSheet = BottomSheetRiderFragment.newInstance(
+                        String.format("%f,%f", mLastLocation.getLatitude(), mLastLocation.getLongitude()),
+                        String.format("%f,%f", latLng.latitude, latLng.longitude),
+                        true);
+                mBottomSheet.show(getSupportFragmentManager(), mBottomSheet.getTag());
+            }
+        });
     }
 
     @Override
